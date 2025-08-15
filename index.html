@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <titel>ระบบแจ้งเตือนน้ำท่วม</titel>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Real-Time Alert – Teachable Machine (Class 1–4)</title>
@@ -15,14 +14,8 @@
 
   <style>
     /* เอฟเฟกต์แจ้งเตือนแถบด้านบน */
-    .pulse {
-      animation: pulse 1.2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.02); opacity: 0.9; }
-      100% { transform: scale(1); opacity: 1; }
-    }
+    .pulse { animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.02); opacity: 0.9; } 100% { transform: scale(1); opacity: 1; } }
     /* สถานะไฟวงกลม */
     .dot { width: 10px; height: 10px; border-radius: 9999px; display: inline-block; }
   </style>
@@ -35,7 +28,8 @@
     <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Real-Time Alert Dashboard</h1>
-        <p class="text-slate-300">Teachable Machine Model: <span class="font-mono text-slate-200">7zGSXYLHS</span></p>
+        <p class="text-slate-300">Teachable Machine Model: <span class="font-mono text-slate-200">rNgERAMGH</span></p>
+        <p class="text-slate-400 text-xs">URL: <span class="break-all">https://teachablemachine.withgoogle.com/models/rNgERAMGH/</span></p>
       </div>
       <div class="flex items-center gap-2">
         <span class="dot bg-gray-400" id="statusDot" title="สถานะ"></span>
@@ -59,18 +53,7 @@
           <div class="bg-black/40 rounded-xl overflow-hidden aspect-video flex items-center justify-center">
             <canvas id="canvas" class="max-w-full"></canvas>
           </div>
-          <!-- กล้อง -->
-        <div class="bg-black/40 rounded-xl overflow-hidden aspect-video flex items-center justify-center">
-         <canvas id="canvas" class="w-full h-auto"></canvas>
-        </div>
-  
-  <!-- Popup แจ้งเตือน -->
-  <div id="popup" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-    <div class="bg-white text-black rounded-2xl shadow-2xl p-6 max-w-sm text-center animate-bounce">
-      <div id="popupText" class="text-lg font-semibold"></div>
-      <button onclick="closePopup()" class="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl">ปิด</button>
-    </div>
-  </div>
+
           <div class="space-y-4">
             <!-- สถานะล่าสุด -->
             <div class="rounded-xl bg-slate-900/60 p-4">
@@ -116,6 +99,11 @@
               <label for="toastToggle" class="text-sm">แสดงแบนเนอร์เตือนด้านบน</label>
             </div>
 
+            <div class="mt-2 flex items-center gap-2">
+              <input id="popupToggle" type="checkbox" class="w-4 h-4" checked>
+              <label for="popupToggle" class="text-sm">แสดงป็อปอัปเตือน</label>
+            </div>
+
             <div class="mt-4 flex items-center gap-2">
               <input id="logToggle" type="checkbox" class="w-4 h-4" checked>
               <label for="logToggle" class="text-sm">บันทึกเหตุการณ์ลง Log</label>
@@ -139,11 +127,18 @@
     </footer>
   </main>
 
+  <!-- Popup แจ้งเตือน -->
+  <div id="popup" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-white text-black rounded-2xl shadow-2xl p-6 max-w-sm text-center">
+      <div id="popupText" class="text-lg font-semibold"></div>
+      <button id="popupClose" class="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl">ปิด</button>
+    </div>
+  </div>
+
   <script>
     // ====== CONFIG ======
-    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/7zGSXYLHS/";
-    const CLASS_LABELS = ["1", "2", "3", "4"]; // ชื่อคลาสตามที่กำหนด
-    const BAR_COLORS = ["#94a3b8", "#22c55e", "#ef4444", "#6366f1"]; // สีแท่งแต่ละคลาส
+    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/rNgERAMGH/"; // เปลี่ยนเป็นโมเดลใหม่แล้ว
+    const BAR_COLORS = ["#94a3b8", "#22c55e", "#ef4444", "#6366f1", "#eab308", "#06b6d4"]; // รองรับมากกว่า 4 คลาสได้
 
     // ====== GLOBALS ======
     let model, webcam, maxPredictions;
@@ -174,7 +169,12 @@
     const t3v = document.getElementById("t3v");
     const cooldownEl = document.getElementById("cooldown");
     const toastToggle = document.getElementById("toastToggle");
+    const popupToggle = document.getElementById("popupToggle");
     const logToggle = document.getElementById("logToggle");
+
+    const popup = document.getElementById('popup');
+    const popupText = document.getElementById('popupText');
+    const popupClose = document.getElementById('popupClose');
 
     document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -189,62 +189,42 @@
       btnMute.setAttribute("aria-pressed", String(muted));
     });
     btnClearLog.addEventListener("click", () => (logEl.innerHTML = ""));
+    popupClose.addEventListener('click', () => popup.classList.add('hidden'));
 
     // ====== SOUND DESIGN ======
-    // 2 = เฝ้าระวัง : เสียง "ปิ้ง ปิ้ง" 2 ครั้ง นุ่มนวล
     function playWatchSound() {
       if (muted) return;
       const now = audioCtx.currentTime;
-      const pattern = [0, 0.25]; // สองครั้งห่างกัน 250ms
-      pattern.forEach((offset) => beep(880, 0.12, now + offset, 0.02));
+      [0, 0.25].forEach((offset) => beep(880, 0.12, now + offset, 0.02));
     }
-
-    // 3 = น้ำท่วม : เสียงไซเรนสั้น ๆ วน 1 รอบ (เร่งปลุก)
     function playFloodAlarm() {
       if (muted) return;
       const now = audioCtx.currentTime;
-      // ไซเรนขึ้นลง 1 วินาที
       siren(now, 1.1);
     }
-
     function beep(freq, duration, startTime, attack = 0.01) {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = "sine";
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(audioCtx.destination);
+      o.type = "sine"; o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
       const t0 = startTime ?? audioCtx.currentTime;
       g.gain.setValueAtTime(0, t0);
       g.gain.linearRampToValueAtTime(0.3, t0 + attack);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-      o.start(t0);
-      o.stop(t0 + duration + 0.02);
+      o.start(t0); o.stop(t0 + duration + 0.02);
     }
-
     function siren(start, total = 1.2) {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = "sawtooth";
-      o.connect(g);
-      g.connect(audioCtx.destination);
-
-      const t0 = start ?? audioCtx.currentTime;
-      const t1 = t0 + total;
-
-      // สร้างขึ้นลงของความถี่ 600 -> 1200 -> 600
+      o.type = "sawtooth"; o.connect(g); g.connect(audioCtx.destination);
+      const t0 = start ?? audioCtx.currentTime; const t1 = t0 + total;
       o.frequency.setValueAtTime(600, t0);
       o.frequency.linearRampToValueAtTime(1200, t0 + total / 2);
       o.frequency.linearRampToValueAtTime(600, t1);
-
-      // โวลุ่ม ADSR
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.06);
       g.gain.setValueAtTime(0.5, t1 - 0.1);
       g.gain.exponentialRampToValueAtTime(0.0001, t1);
-
-      o.start(t0);
-      o.stop(t1 + 0.05);
+      o.start(t0); o.stop(t1 + 0.05);
     }
 
     // ====== UI HELPERS ======
@@ -256,6 +236,7 @@
     function showBanner(type, text) {
       if (!toastToggle.checked) return;
       bannerEl.className = "w-full text-center py-2 font-semibold";
+      bannerEl.classList.remove("hidden", "bg-amber-500", "bg-red-600", "text-black", "text-white", "pulse");
       if (type === "watch") {
         bannerEl.classList.add("bg-amber-500", "text-black", "pulse");
         bannerEl.textContent = "⚠️ เฝ้าระวัง: " + text;
@@ -263,16 +244,18 @@
         bannerEl.classList.add("bg-red-600", "text-white", "pulse");
         bannerEl.textContent = "🚨 น้ำท่วม: " + text;
       } else {
-        bannerEl.className = "hidden";
-        bannerEl.textContent = "";
-        return;
+        bannerEl.className = "hidden"; bannerEl.textContent = ""; return;
       }
-      bannerEl.classList.remove("hidden");
-      // ซ่อนอัตโนมัติหลัง 4 วินาที
-      setTimeout(() => {
-        bannerEl.className = "hidden";
-        bannerEl.textContent = "";
-      }, 4000);
+      setTimeout(() => { bannerEl.className = "hidden"; bannerEl.textContent = ""; }, 4000);
+    }
+
+    function showPopup(message, type) {
+      if (!popupToggle.checked) return;
+      popupText.textContent = message;
+      popupText.className = "text-lg font-semibold";
+      if (type === 'watch') popupText.classList.add('text-amber-600');
+      if (type === 'flood') { popupText.classList.add('font-bold', 'text-red-600'); }
+      popup.classList.remove('hidden');
     }
 
     function addLog(message) {
@@ -293,12 +276,12 @@
         const pct = (p.probability * 100).toFixed(1) + "%";
 
         label.className = "text-sm mb-1 flex justify-between";
-        label.innerHTML = `<span>คลาส ${CLASS_LABELS[idx]}</span><span class="font-mono">${pct}</span>`;
+        label.innerHTML = `<span>${p.className || ('คลาส ' + (idx+1))}</span><span class="font-mono">${pct}</span>`;
 
         barWrap.className = "w-full h-3 bg-slate-700/70 rounded-full overflow-hidden";
         bar.className = "h-3";
         bar.style.width = (p.probability * 100) + "%";
-        bar.style.background = BAR_COLORS[idx];
+        bar.style.background = BAR_COLORS[idx % BAR_COLORS.length];
 
         barWrap.appendChild(bar);
         row.appendChild(label);
@@ -316,18 +299,16 @@
     async function start() {
       btnStart.disabled = true;
       try {
-        // โหลดโมเดล
         const modelURL = MODEL_URL + "model.json";
         const metadataURL = MODEL_URL + "metadata.json";
         model = await tmImage.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
 
         // กล้อง
-        webcam = new tmImage.Webcam(400, 300, true); // width, height, flip
+        webcam = new tmImage.Webcam(640, 480, true); // width, height, flip
         await webcam.setup({ facingMode: "environment" }); // ขอสิทธิ์กล้อง
         await webcam.play();
         setStatus(true);
-        
 
         // bind canvas
         canvasEl.width = webcam.canvas.width;
@@ -343,30 +324,32 @@
           // จัดเรียงเพื่อหาค่ามากสุด
           const sorted = [...predictions].sort((a, b) => b.probability - a.probability);
           const top = sorted[0];
-          const topIndex = predictions.findIndex(p => p.className === top.className);
-          const topLabel = CLASS_LABELS[topIndex] ?? top.className;
+          const topLabel = top.className ?? '—';
 
           topClassEl.textContent = topLabel;
           topProbEl.textContent = (top.probability * 100).toFixed(1) + "%";
           lastTimeEl.textContent = new Date().toLocaleTimeString();
 
-          // วาด bars ตามลำดับ 1..4 (อิง CLASS_LABELS)
-          // map predictions to labels 1..4 ตาม index ของโมเดล
+          // วาด bars ตามลำดับจากโมเดล
           renderBars(predictions);
 
-          // ตรวจแจ้งเตือน (เฉพาะคลาส 2,3)
-          const p2 = predictions[1]?.probability ?? 0; // index 1 -> "2"
-          const p3 = predictions[2]?.probability ?? 0; // index 2 -> "3"
+          // หา p2, p3 ตามชื่อคลาสจริงของโมเดล
+          const p2 = (predictions.find(p => String(p.className).trim() === '2')?.probability) ?? 0;
+          const p3 = (predictions.find(p => String(p.className).trim() === '3')?.probability) ?? 0;
 
           if (!withinCooldown()) {
             if (p3 >= Number(t3.value)) {
               lastAlertAt = Date.now();
-              showBanner("flood", `ตรวจพบคลาส 3 (น้ำท่วม) ความมั่นใจ ${(p3*100).toFixed(1)}%`);
+              const msg = `ตรวจพบคลาส 3 (น้ำท่วม) ความมั่นใจ ${(p3*100).toFixed(1)}%`;
+              showBanner("flood", msg);
+              showPopup(`🚨 ${msg}`, "flood");
               addLog(`ALERT: Class 3 น้ำท่วม (${(p3*100).toFixed(1)}%)`);
               playFloodAlarm();
             } else if (p2 >= Number(t2.value)) {
               lastAlertAt = Date.now();
-              showBanner("watch", `ตรวจพบคลาส 2 (เฝ้าระวัง) ความมั่นใจ ${(p2*100).toFixed(1)}%`);
+              const msg = `ตรวจพบคลาส 2 (เฝ้าระวัง) ความมั่นใจ ${(p2*100).toFixed(1)}%`;
+              showBanner("watch", msg);
+              showPopup(`⚠️ ${msg}`, "watch");
               addLog(`WATCH: Class 2 เฝ้าระวัง (${(p2*100).toFixed(1)}%)`);
               playWatchSound();
             }
@@ -391,21 +374,22 @@
         loopId = null;
         if (webcam) {
           webcam.stop();
-          webcam.canvas.getContext("2d").clearRect(0, 0, webcam.canvas.width, webcam.canvas.height);
+          const ctx = canvasEl.getContext('2d');
+          ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
         }
       } catch(e) {}
       setStatus(false);
       btnStart.disabled = false;
       btnStop.disabled = true;
       showBanner(null, "");
+      popup.classList.add('hidden');
     }
 
     // หยุดเสียง/กล้องเมื่อสลับแท็บ เพื่อลดการใช้ทรัพยากร
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        if (loopId) {
-          cancelAnimationFrame(loopId);
-          loopId = null;
+        if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
+        if (webcam && webcam.stream) {
           statusText.textContent = "หยุดชั่วคราว (สลับแท็บ)";
           statusDot.className = "dot bg-amber-400";
         }
@@ -419,10 +403,7 @@
           const predictions = await model.predict(webcam.canvas);
           const sorted = [...predictions].sort((a, b) => b.probability - a.probability);
           const top = sorted[0];
-          const topIndex = predictions.findIndex(p => p.className === top.className);
-          const topLabel = CLASS_LABELS[topIndex] ?? top.className;
-
-          topClassEl.textContent = topLabel;
+          topClassEl.textContent = top.className ?? '—';
           topProbEl.textContent = (top.probability * 100).toFixed(1) + "%";
           lastTimeEl.textContent = new Date().toLocaleTimeString();
           renderBars(predictions);
@@ -436,40 +417,6 @@
     window.addEventListener("click", () => {
       if (audioCtx.state === "suspended") audioCtx.resume();
     }, { once: true });
-
-    // ขยายขนาดกล้อง
-webcam = new tmImage.Webcam(640, 480, true);
-
-// ฟังก์ชัน popup
-function showPopup(message, type) {
-  const popup = document.getElementById("popup");
-  const popupText = document.getElementById("popupText");
-  popupText.textContent = message;
-  popup.classList.remove("hidden");
-
-  if (type === "watch") {
-    popupText.className = "text-lg font-semibold text-amber-600";
-  } else if (type === "flood") {
-    popupText.className = "text-lg font-bold text-red-600";
-  }
-}
-
-function closePopup() {
-  document.getElementById("popup").classList.add("hidden");
-}
-
-// ใช้แทน showBanner
-if (p3 >= Number(t3.value)) {
-  lastAlertAt = Date.now();
-  showPopup(`🚨 น้ำท่วม! ความมั่นใจ ${(p3*100).toFixed(1)}%`, "flood");
-  addLog(`ALERT: Class 3 น้ำท่วม (${(p3*100).toFixed(1)}%)`);
-  playFloodAlarm();
-} else if (p2 >= Number(t2.value)) {
-  lastAlertAt = Date.now();
-  showPopup(`⚠️ เฝ้าระวัง! ความมั่นใจ ${(p2*100).toFixed(1)}%`, "watch");
-  addLog(`WATCH: Class 2 เฝ้าระวัง (${(p2*100).toFixed(1)}%)`);
-  playWatchSound();
-}
   </script>
 </body>
 </html>
