@@ -334,8 +334,8 @@
           renderBars(predictions);
 
           // หา p2, p3 ตามชื่อคลาสจริงของโมเดล
-          const p2 = (predictions.find(p => String(p.className).trim() === '2')?.probability) ?? 0;
-          const p3 = (predictions.find(p => String(p.className).trim() === '3')?.probability) ?? 0;
+          const p2 = (predictions.find(p => String(p.className).trim() === 'Class 2')?.probability) ?? 0;
+          const p3 = (predictions.find(p => String(p.className).trim() === 'Class 3')?.probability) ?? 0;
 
           if (!withinCooldown()) {
             if (p3 >= Number(t3.value)) {
